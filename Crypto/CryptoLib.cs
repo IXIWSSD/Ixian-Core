@@ -58,7 +58,7 @@ namespace IXICore
         /// <param name="keySize">Size of the new RSA key, in bits.</param>
         /// <param name="skip_header">Legacy parameter to allow generating older Ixian keys.</param>
         /// <returns>A new RSA key pair and associated Ixian data.</returns>
-        IxianKeyPair generateKeys(int keySize, int version);
+        IxianKeyPair generateKeys(int keySize, int version, byte[] seed = null);
 
         /// <summary>
         ///  Generates a cryptographic signature for the input data, using the provided private key in the Ixian serialized format.
@@ -255,10 +255,10 @@ namespace IXICore
             _cryptoLib = crypto_lib;
         }
 
-        public IxianKeyPair generateKeys(int keySize, int addressVersion)
+        public IxianKeyPair generateKeys(int keySize, int addressVersion, byte[] seed = null)
         {
             Trace.Assert(_cryptoLib != null);
-            return _cryptoLib.generateKeys(keySize, addressVersion);
+            return _cryptoLib.generateKeys(keySize, addressVersion, seed);
         }
 
         public byte[] getSignature(byte[] input, byte[] privateKey)

@@ -17,6 +17,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Security.Cryptography;
+
 
 namespace IXICore
 {
@@ -1337,9 +1339,15 @@ namespace IXICore
             walletLoaded = false;
             baseNonce = null;
         }
-
+        public static byte[] MnemonicToSeed(string mnemonic, string passphrase = "")
+        {
+            // The BIP39 standard uses "mnemonic" + passphrase as the salt for PBKDF2
+            string salt = "mnemonic" + passphrase;
+            var pbkdf2 = new Rfc2898DeriveBytes(mnemonic, Encoding.UTF8.GetBytes(salt), 2048, HashAlgorithmName.SHA512);
+            return pbkdf2.GetBytes(64); // BIP39 specifies a 512-bit (64-byte) seed
+        }
         // Generate a new wallet with matching private/public key pairs
-        public bool generateWallet(string password)
+        public bool generateWallet(string password, string mnemonic = null)
         {
             if (walletLoaded)
             {
@@ -1354,8 +1362,31 @@ namespace IXICore
 
             Logging.log(LogSeverity.info, "Generating primary wallet keys, this may take a while, please wait...");
 
-            //IxianKeyPair kp = generateNewKeyPair(false);
-            IxianKeyPair kp = CryptoManager.lib.generateKeys(ConsensusConfig.defaultRsaKeySize, 1);
+
+            byte[] seed = null;
+            if (!string.IsNullOrEmpty(mnemonic))
+            {
+                // Convert mnemonic to seed
+                seed = MnemonicToSeed(mnemonic);
+            }
+
+
+            IxianKeyPair kp;
+
+            if (seed != null)
+            {
+                // Generate keys from seed
+                kp = CryptoManager.lib.generateKeys(ConsensusConfig.defaultRsaKeySize, 1, seed);
+
+            }
+            else
+            {
+                kp = CryptoManager.lib.generateKeys(ConsensusConfig.defaultRsaKeySize, 1);
+
+            }
+
+
+
 
             if (kp == null)
             {
@@ -1391,7 +1422,7 @@ namespace IXICore
             if (OperatingSystem.IsWindows())
                 Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine(address.ToString());
-            if (OperatingSystem.IsWindows()) 
+            if (OperatingSystem.IsWindows())
                 Console.ResetColor();
             Console.WriteLine();
 
@@ -1453,7 +1484,8 @@ namespace IXICore
             if (walletVersion == 5)
             {
                 return getWalletBytes_v5(password, true);
-            }else
+            }
+            else
             {
                 // Encrypt data first
                 byte[] b_baseNonce = CryptoManager.lib.encryptWithPassword(baseNonce, password, false);

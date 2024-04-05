@@ -181,9 +181,9 @@ namespace IXICore.Utils
             wordList = wordList ?? Wordlist.English;
             _WordList = wordList;
             if (entropy == null)
-                entropy = RandomUtils.GetBytes(64);
+                entropy = RandomUtils.GetBytes(16);
 
-            var i = Array.IndexOf(entArray, entropy.Length * 2);
+            var i = Array.IndexOf(entArray, entropy.Length * 8);
             if (i == -1)
                 throw new ArgumentException("The length for entropy should be : " + String.Join(",", entArray), "entropy");
 
@@ -206,11 +206,25 @@ namespace IXICore.Utils
 
         private static byte[] GenerateEntropy(WordCount wordCount)
         {
-            var ms = (int)wordCount;
-            if (!CorrectWordCount(ms))
-                throw new ArgumentException("Word count should be equal to 12,15,18,21 or 24", "wordCount");
-            int i = Array.IndexOf(msArray, (int)wordCount);
-            return RandomUtils.GetBytes(entArray[i] / 8);
+            var wordCountInt = (int)wordCount;
+            if (!CorrectWordCount(wordCountInt))
+                throw new ArgumentException("Word count should be equal to 12,15,18,21 or 24", nameof(wordCount));
+
+            int entropyIndex = Array.IndexOf(msArray, wordCountInt);
+            if (entropyIndex < 0)
+                throw new ArgumentOutOfRangeException(nameof(wordCount), "Invalid word count specified.");
+
+            int entropySizeBits = entArray[entropyIndex];
+            int entropySizeBytes = entropySizeBits / 8; // Convert bits to bytes
+            byte[] entropy = RandomUtils.GetBytes(entropySizeBytes);
+
+            // Console.WriteLine("Entropy (HEX): " + BitConverter.ToString(entropy).Replace("-", ""));
+            // Console.WriteLine("Word Count: " + wordCountInt);
+            // Console.WriteLine("Index: " + entropyIndex);
+            // Console.WriteLine("Entropy Size (Bits): " + entropySizeBits);
+            // Console.WriteLine("Entropy Size (Bytes): " + entropySizeBytes);
+
+            return entropy;
         }
 
         static readonly int[] msArray = new[] { 12, 15, 18, 21, 24 };

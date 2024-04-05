@@ -89,6 +89,8 @@ namespace IXICore
                 else
                 {
                     version = publicKeyOrAddress[0];
+            Console.WriteLine("Entropy (HEX): " + publicKeyOrAddress.Length);
+
                 }
             }
 
